@@ -99,7 +99,7 @@ end
 function Enemy:keypressed( button, player)
     if player.freeze or player.dead then return end
     if button == "B" then
-        self.jump_boost = 1000
+        self.jump_boost = 220
     end
 end
 
