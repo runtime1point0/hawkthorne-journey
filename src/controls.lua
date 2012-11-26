@@ -22,7 +22,11 @@ for button, keys in pairs(buttonmap) do
 end
 
 function controls.getButton( key )
-    return keymap[key]
+    if keymap[key] then
+        return keymap[key]
+    else
+        return key
+    end
 end
 
 

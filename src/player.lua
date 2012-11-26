@@ -59,6 +59,7 @@ function Player.new(collider)
     plyr.health = plyr.max_health
 
     plyr.inventory = Inventory.new( plyr )
+    plyr.neo_mode = false
     
     plyr.money = 0
     plyr.lives = 3
@@ -194,17 +195,27 @@ function Player:keypressed( button, map )
     end
     
     if button == 'SELECT' and not self.interactive_collide then
-        if self.currently_held and self.currently_held.wield then
-            if controls.isDown( 'DOWN' ) then
-                self.currently_held:unuse()
-            elseif controls.isDown( 'UP' ) then
-                self:switchWeapon()
-            end
+        if self.currently_held and self.currently_held.wield and controls.isDown( 'DOWN' )then
+            self.currently_held:unuse()
+        elseif self.currently_held and self.currently_held.wield and controls.isDown( 'UP' ) then
+            self:switchWeapon()
         else
             self.inventory:open( )
             self.freeze = true
         end
     end
+
+    if button == '[' then
+        cheat.neo = not cheat.neo
+        self.neo_mode = false
+        self:setSpriteStates('default') -- figure out best way to determine what to pass in
+        -- TODO: show achievement box with whether disabled or enabled
+    elseif self.neo_mode and not controls.isDown( 'DOWN' ) and not controls.isDown( 'UP' ) and not controls.isDown( 'LEFT' ) and not controls.isDown( 'RIGHT' ) then -- other buttons turn off neo_mode
+        self.neo_mode = false
+        -- TODO: show achievement box with whether disabled or enabled
+        self:setSpriteStates('default') -- figure out best way to determine what to pass in
+    end
+
     if button == 'A' and not self.interactive_collide then
         if self.currently_held and not self.currently_held.wield then
             if controls.isDown( 'DOWN' ) then
@@ -224,6 +235,13 @@ function Player:keypressed( button, map )
     -- taken from sonic physics http://info.sonicretro.org/SPG:Jumping
     if button == 'B' and map.jumping then
         self.jumpQueue:push('jump')
+    end
+
+    if button == 'UP' and cheat.neo and not self.neo_mode then
+        self.neo_mode = true
+        self.jumping = false
+        self:setSpriteStates('default') -- figure out best way to determine what to pass in
+        -- TODO: show achievement box with whether disabled or enabled
     end
 end
 
@@ -252,6 +270,9 @@ function Player:update( dt )
     local movingLeft = controls.isDown( 'LEFT' )
     local movingRight = controls.isDown( 'RIGHT' )
     local jumping = controls.isDown( 'B' )
+    local movingDown = crouching and self.neo_mode
+    local movingUp = gazing and self.neo_mode
+
 
     if not self.invulnerable then
         self:stopBlink()
@@ -322,8 +343,40 @@ function Player:update( dt )
         end
     end
 
+    -- adapting from movingRight/movingLeft code
+    if self.neo_mode then
+        if movingUp and not movingDown and not self.rebounding then
+            if self.velocity.y > 0 then
+                self.velocity.y = self.velocity.y - (self:deccel() * dt)
+            elseif self.velocity.y > -game.max_y then
+                self.velocity.y = self.velocity.y - (self:accel() * dt)
+                if self.velocity.y < -game.max_y then
+                    self.velocity.y = -game.max_y
+                end
+            end
+        elseif movingDown and not movingUp and not self.rebounding then
+            if self.velocity.y < 0 then
+                self.velocity.y = self.velocity.y + (self:deccel() * dt)
+            elseif self.velocity.y < game.max_y then
+                self.velocity.y = self.velocity.y + (self:accel() * dt)
+                if self.velocity.y > game.max_y then
+                    self.velocity.y = game.max_y
+                end
+            end
+        else
+            if self.velocity.y < 0 then
+                self.velocity.y = math.min(self.velocity.y + game.friction * dt, 0)
+            else
+                self.velocity.y = math.max(self.velocity.y - game.friction * dt, 0)
+            end
+        end
+    end
+    -- /adapting from movingRight/movingLeft code
+
+
     local jumped = self.jumpQueue:flush()
     local halfjumped = self.halfjumpQueue:flush()
+
 
     if jumped and not self.jumping and self:solid_ground()
         and not self.rebounding and not self.liquid_drag then
@@ -346,8 +399,12 @@ function Player:update( dt )
         self.velocity.y = -450
     end
 
-    self.velocity.y = self.velocity.y + game.gravity * dt
-    self.since_solid_ground = self.since_solid_ground + dt
+    if not self.neo_mode then
+        self.velocity.y = self.velocity.y + game.gravity * dt
+        self.since_solid_ground = self.since_solid_ground + dt
+    else
+        self.jumping = false
+    end
 
     if self.velocity.y > game.max_y then
         self.velocity.y = game.max_y
@@ -368,6 +425,7 @@ function Player:update( dt )
 
     -- falling off the bottom of the map
     if self.position.y > self.boundary.height then
+
         self.health = 0
         self.character.state = 'dead'
         return
@@ -586,10 +644,10 @@ function Player:setSpriteStates(presetName)
     --gaze_state  : pressing up
     --jump_state  : pressing jump button
     --idle_state  : standing around
-    
+
     if presetName == 'wielding' then
         self.walk_state   = 'wieldwalk'
-        if self.onFloorspace then
+        if self.onFloorspace or self.neo_mode then
             self.crouch_state = 'crouchwalk'
             self.gaze_state   = 'gazewalk'
         else
@@ -613,7 +671,7 @@ function Player:setSpriteStates(presetName)
     elseif presetName == 'default' then
         -- Default
         self.walk_state   = 'walk'
-        if self.onFloorspace then
+        if self.onFloorspace or self.neo_mode then
             self.crouch_state = 'crouchwalk'
             self.gaze_state   = 'gazewalk'
         else
@@ -672,6 +730,12 @@ function Player:floor_pushback(node, new_y)
     self:ceiling_pushback(node, new_y)
     self:impactDamage()
     self:restore_solid_ground()
+
+    if self.neo_mode then
+        self.neo_mode = false
+        self:setSpriteStates('default') -- figure out best way to determine what to pass in
+        -- TODO: show achievement box with whether disabled or enabled
+    end
 end
 
 function Player:wall_pushback(node, new_x)

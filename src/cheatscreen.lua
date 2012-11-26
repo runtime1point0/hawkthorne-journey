@@ -144,6 +144,9 @@ function cheatscreen:keypressed( button )
             elseif self.cmd.current == 'spacetime' then
                 cheat.god = not cheat.god
                 table.insert( self.cmd.queue, self.cmd.space .. 'God Mode: ' .. ( cheat.god and 'Enabled' or 'Disabled' ) )
+            elseif self.cmd.current == 'matrix' then
+                cheat.neo = not cheat.neo
+                table.insert( self.cmd.queue, self.cmd.space .. 'Matrix: ' .. ( cheat.neo and 'Enabled' or 'Disabled' ) )
             else
                 table.insert( self.cmd.queue, self.cmd.space .. self.cmd.cnf )
             end
