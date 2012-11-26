@@ -59,7 +59,9 @@ function Player.new(collider)
     plyr.health = plyr.max_health
 
     plyr.inventory = Inventory.new( plyr )
+
     plyr.neo_mode = false
+    plyr.neo_primed = false
     
     plyr.money = 0
     plyr.lives = 3
@@ -208,10 +210,12 @@ function Player:keypressed( button, map )
     if button == '[' then
         cheat.neo = not cheat.neo
         self.neo_mode = false
+        self.neo_primed = false
         self:setSpriteStates('default') -- figure out best way to determine what to pass in
         -- TODO: show achievement box with whether disabled or enabled
     elseif self.neo_mode and not controls.isDown( 'DOWN' ) and not controls.isDown( 'UP' ) and not controls.isDown( 'LEFT' ) and not controls.isDown( 'RIGHT' ) then -- other buttons turn off neo_mode
         self.neo_mode = false
+        self.neo_primed = false
         -- TODO: show achievement box with whether disabled or enabled
         self:setSpriteStates('default') -- figure out best way to determine what to pass in
     end
@@ -238,10 +242,16 @@ function Player:keypressed( button, map )
     end
 
     if button == 'UP' and cheat.neo and not self.neo_mode then
-        self.neo_mode = true
-        self.jumping = false
-        self:setSpriteStates('default') -- figure out best way to determine what to pass in
-        -- TODO: show achievement box with whether disabled or enabled
+        if self.neo_primed then
+            self.neo_mode = true
+            self.neo_primed = false
+            self.jumping = false
+            self:setSpriteStates('default') -- figure out best way to determine what to pass in
+            -- TODO: show achievement box with whether disabled or enabled
+        else
+            self.neo_primed = true
+            Timer.add( 0.25, function() self.neo_primed = false end )
+        end
     end
 end
 
