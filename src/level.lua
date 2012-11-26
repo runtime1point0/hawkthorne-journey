@@ -72,6 +72,12 @@ local function on_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
     if node then
         node.player_touched = true
 
+        if player and node.keypressed and player.lastKeyPressed and player.lastKeyPressed_startTime and (love.timer.getTime() - player.lastKeyPressed_startTime < 0.1) then
+            node:keypressed( player.lastKeyPressed, player)
+            player.lastKeyPressed = nil
+            player.lastKeyPressed_startTime = nil
+        end
+
         if node.collide then
             node:collide(player, dt, mtv_x, mtv_y)
         end

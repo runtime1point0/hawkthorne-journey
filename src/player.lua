@@ -128,6 +128,8 @@ function Player:refreshPlayer(collider)
     self.prevAttackPressed = false
     self.current_hippie = nil
     
+    self.lastKeyPressed = nil
+    self.lastKeyPressed_startTime = nil
 
 end
 
@@ -192,6 +194,11 @@ function Player:keypressed( button, map )
         self.inventory:keypressed( button )
         return
     end
+
+    if button == 'A' or button == 'B' then
+        self.lastKeyPressed = button
+        self.lastKeyPressed_startTime = love.timer.getTime()
+    end
     
     if button == 'SELECT' and not self.interactive_collide then
         if self.currently_held and self.currently_held.wield and controls.isDown( 'DOWN' )then
@@ -226,6 +233,10 @@ function Player:keypressed( button, map )
 end
 
 function Player:keyreleased( button, map )
+    if button == 'A' or button == 'B' then
+        self.lastKeyPressed = nil
+        self.lastKeyPressed_startTime = nil
+    end
     -- taken from sonic physics http://info.sonicretro.org/SPG:Jumping
     if button == 'B' and map.jumping then
         self.halfjumpQueue:push('jump')

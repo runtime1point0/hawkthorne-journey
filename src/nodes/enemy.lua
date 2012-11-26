@@ -64,6 +64,8 @@ function Enemy.new(node, collider, enemytype)
     
     enemy.state = 'default'
     enemy.direction = 'left'
+
+    enemy.jump_boost = 0
     
     enemy.animations = {}
     
@@ -92,6 +94,13 @@ end
 
 function Enemy:animation()
     return self.animations[self.state][self.direction]
+end
+
+function Enemy:keypressed( button, player)
+    if player.freeze or player.dead then return end
+    if button == "B" then
+        self.jump_boost = 1000
+    end
 end
 
 function Enemy:hurt( damage )
@@ -136,17 +145,19 @@ function Enemy:dropTokens()
 end
 
 function Enemy:collide(player, dt, mtv_x, mtv_y)
-	if not player.isPlayer then return end
+    if not player.isPlayer then return end
     if player.rebounding or player.dead then
         return
     end
     
     if not player.current_enemy then
          player.current_enemy = self
-     end
+    end
     
     if player.current_enemy ~= self then return end
-    
+
+    local boost = self.jump_boost
+
     local _, _, _, playerBottom = player.bb:bbox()
     local _, enemyTop, _, y2 = self.bb:bbox()
     local headsize = (y2 - enemyTop) / 2
@@ -160,6 +171,10 @@ function Enemy:collide(player, dt, mtv_x, mtv_y)
         else
             player.velocity.y = -450
         end
+
+        player.velocity.y = player.velocity.y - boost
+    self.jump_boost = 0
+
         return
     end
 
